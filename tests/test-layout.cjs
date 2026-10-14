@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const s=fs.readFileSync(__dirname+'/../app/src/main/assets/index.html','utf8');
+const nodes={home:{innerHTML:''},homeLedgerScroll:{scrollTop:120,clientHeight:350,scrollHeight:900}};
+let bodyClass=new Set();const c={document:{body:{classList:{add:x=>bodyClass.add(x)}}},$:id=>nodes[id],monthEntries:()=>[{amount:-5}],exp:()=>5,inc:()=>0,monthTitle:()=> '2026年10月',yuan:x=>'¥'+x,money:String,budget:100,recentGroupHtml:()=>'<div class="row">测试账单</div>'};
+vm.createContext(c);
+for(const n of ['renderHome','homeDocHeight','homeAtTop','homeAtBottom'])vm.runInContext(s.split('\n').find(l=>l.startsWith('function '+n+'(')),c);
+const scrollLine=s.split('\n').find(l=>l.includes('function homeScrollY(){'));vm.runInContext(scrollLine.slice(scrollLine.indexOf('function homeScrollY(){')),c);
+c.renderHome();assert(bodyClass.has('home-fixed'));assert(nodes.home.innerHTML.indexOf('home-summary')<nodes.home.innerHTML.indexOf('homeLedgerScroll'));assert.equal(nodes.homeLedgerScroll.scrollTop,120);
+assert(!c.homeAtTop());assert(!c.homeAtBottom());nodes.homeLedgerScroll.scrollTop=0;assert(c.homeAtTop());nodes.homeLedgerScroll.scrollTop=550;assert(c.homeAtBottom());
+assert(s.includes('#homeLedgerScroll{flex:1 1 auto;min-height:0;overflow-y:auto'));assert(s.includes('#home>.top,#home>.home-summary{flex:0 0 auto}'));assert(s.includes("classList.toggle('home-fixed',p==='home')"));assert(s.includes("!ev.target.closest('#homeLedgerScroll')"));
+console.log('PASS fixed header/summary hierarchy, independent ledger scrolling, preserved scroll position, month gesture boundaries, page switching');
